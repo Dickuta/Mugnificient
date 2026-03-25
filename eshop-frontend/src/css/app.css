@@ -1,0 +1,13 @@
+.text-decoration-none {
+  text-decoration: none;
+}
+
+.product-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.product-card .q-card__section--vert {
+  flex-grow: 1;
+}

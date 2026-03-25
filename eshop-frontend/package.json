@@ -1,0 +1,25 @@
+{
+  "name": "eshop-frontend",
+  "version": "1.0.0",
+  "description": "E-Commerce Frontend with Quasar",
+  "productName": "E-Shop",
+  "private": true,
+  "scripts": {
+    "dev": "quasar dev",
+    "build": "quasar build"
+  },
+  "dependencies": {
+    "@quasar/extras": "^1.16.9",
+    "axios": "^1.6.2",
+    "chart.js": "^4.5.1",
+    "pinia": "^2.1.7",
+    "quasar": "^2.14.2",
+    "vue": "^3.4.18",
+    "vue-chartjs": "^5.3.3",
+    "vue-router": "^4.2.5"
+  },
+  "devDependencies": {
+    "@quasar/app-vite": "^2.0.0-beta.11",
+    "vite": "^5.0.12"
+  }
+}

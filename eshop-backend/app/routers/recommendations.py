@@ -1,0 +1,268 @@
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+from typing import List
+from datetime import datetime, timedelta
+
+from app.core.database import get_db
+from app.core.security import get_current_user
+from app.core.cache import cached
+from app.models.models import User, Product, Order, OrderItem, Category
+
+router = APIRouter(prefix="/recommendations", tags=["recommendations"])
+
+
+def get_popular_products(db: Session, limit: int = 10, category_id: int = None):
+    """Get popular products based on order frequency"""
+    query = (
+        db.query(Product, func.sum(OrderItem.quantity).label("total_sold"))
+        .join(OrderItem, OrderItem.product_id == Product.id)
+        .join(Order, Order.id == OrderItem.order_id)
+        .filter(Order.is_paid == True)
+    )
+
+    if category_id:
+        query = query.filter(Product.category_id == category_id)
+
+    results = (
+        query.group_by(Product.id)
+        .order_by(func.sum(OrderItem.quantity).desc())
+        .limit(limit)
+        .all()
+    )
+
+    return [p[0] for p in results]
+
+
+def get_products_in_same_category(db: Session, product_id: int, limit: int = 6):
+    """Get products in the same category"""
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        return []
+
+    return (
+        db.query(Product)
+        .filter(
+            Product.category_id == product.category_id,
+            Product.id != product_id,
+            Product.is_active == True,
+        )
+        .limit(limit)
+        .all()
+    )
+
+
+def get_frequently_bought_together(db: Session, product_id: int, limit: int = 6):
+    """Get products frequently bought together with the given product"""
+    # Find orders containing this product
+    order_ids = (
+        db.query(OrderItem.order_id)
+        .filter(OrderItem.product_id == product_id)
+        .subquery()
+    )
+
+    # Find other products in those orders
+    results = (
+        db.query(Product, func.count(OrderItem.id).label("frequency"))
+        .join(OrderItem, OrderItem.product_id == Product.id)
+        .filter(OrderItem.order_id.in_(order_ids), OrderItem.product_id != product_id)
+        .group_by(Product.id)
+        .order_by(func.count(OrderItem.id).desc())
+        .limit(limit)
+        .all()
+    )
+
+    return [p[0] for p in results]
+
+
+def get_user_purchase_history(db: Session, user_id: int):
+    """Get user's purchase history (product IDs)"""
+    order_items = (
+        db.query(OrderItem)
+        .join(Order)
+        .filter(Order.user_id == user_id, Order.is_paid == True)
+        .all()
+    )
+
+    return [item.product_id for item in order_items]
+
+
+def get_recommendations_by_history(db: Session, user_id: int, limit: int = 10):
+    """Get product recommendations based on user's purchase history"""
+    purchased_ids = get_user_purchase_history(db, user_id)
+
+    if not purchased_ids:
+        return get_popular_products(db, limit)
+
+    # Get categories the user has purchased from
+    categories = (
+        db.query(Product.category_id)
+        .filter(Product.id.in_(purchased_ids))
+        .distinct()
+        .all()
+    )
+
+    category_ids = [c[0] for c in categories]
+
+    # Recommend from those categories, excluding already purchased
+    recommendations = (
+        db.query(Product)
+        .filter(
+            Product.category_id.in_(category_ids),
+            ~Product.id.in_(purchased_ids),
+            Product.is_active == True,
+        )
+        .limit(limit)
+        .all()
+    )
+
+    # If not enough, add popular products
+    if len(recommendations) < limit:
+        existing_ids = [p.id for p in recommendations] + purchased_ids
+        more = (
+            db.query(Product)
+            .filter(~Product.id.in_(existing_ids), Product.is_active == True)
+            .limit(limit - len(recommendations))
+            .all()
+        )
+        recommendations.extend(more)
+
+    return recommendations
+
+
+def get_recently_viewed_similar(db: Session, category_id: int = None, limit: int = 10):
+    """Get recently added products, optionally filtered by category"""
+    query = db.query(Product).filter(Product.is_active == True)
+
+    if category_id:
+        query = query.filter(Product.category_id == category_id)
+
+    return query.order_by(Product.created_at.desc()).limit(limit).all()
+
+
+# API Endpoints
+
+
+@router.get("/popular")
+@cached(ttl=300, key_prefix="recommendations")
+def get_popular(
+    limit: int = 10, category_id: int = None, db: Session = Depends(get_db)
+):
+    """Get popular products"""
+    products = get_popular_products(db, limit, category_id)
+    return [
+        {
+            "id": p.id,
+            "name": p.name,
+            "slug": p.slug,
+            "price": float(p.price),
+            "image": p.image,
+            "category": p.category.name if p.category else None,
+        }
+        for p in products
+    ]
+
+
+@router.get("/similar/{product_id}")
+@cached(ttl=300, key_prefix="similar")
+def get_similar_products(
+    product_id: int, limit: int = 6, db: Session = Depends(get_db)
+):
+    """Get products similar to the given product (same category)"""
+    products = get_products_in_same_category(db, product_id, limit)
+    return [
+        {
+            "id": p.id,
+            "name": p.name,
+            "slug": p.slug,
+            "price": float(p.price),
+            "image": p.image,
+            "category": p.category.name if p.category else None,
+        }
+        for p in products
+    ]
+
+
+@router.get("/bought-together/{product_id}")
+@cached(ttl=300, key_prefix="bought_together")
+def get_bought_together(product_id: int, limit: int = 6, db: Session = Depends(get_db)):
+    """Get products frequently bought together"""
+    products = get_frequently_bought_together(db, product_id, limit)
+    return [
+        {
+            "id": p.id,
+            "name": p.name,
+            "slug": p.slug,
+            "price": float(p.price),
+            "image": p.image,
+            "category": p.category.name if p.category else None,
+        }
+        for p in products
+    ]
+
+
+@router.get("/for-you")
+def get_for_you(
+    limit: int = 10,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get personalized recommendations for logged-in user"""
+    products = get_recommendations_by_history(db, current_user.id, limit)
+    return [
+        {
+            "id": p.id,
+            "name": p.name,
+            "slug": p.slug,
+            "price": float(p.price),
+            "image": p.image,
+            "category": p.category.name if p.category else None,
+        }
+        for p in products
+    ]
+
+
+@router.get("/new-arrivals")
+@cached(ttl=600, key_prefix="new_arrivals")
+def get_new_arrivals(
+    category_id: int = None, limit: int = 10, db: Session = Depends(get_db)
+):
+    """Get recently added products"""
+    products = get_recently_viewed_similar(db, category_id, limit)
+    return [
+        {
+            "id": p.id,
+            "name": p.name,
+            "slug": p.slug,
+            "price": float(p.price),
+            "image": p.image,
+            "category": p.category.name if p.category else None,
+            "created_at": p.created_at.isoformat(),
+        }
+        for p in products
+    ]
+
+
+@router.get("/featured")
+@cached(ttl=300, key_prefix="rec_featured")
+def get_featured_products(limit: int = 10, db: Session = Depends(get_db)):
+    """Get featured products"""
+    products = (
+        db.query(Product)
+        .filter(Product.is_featured == True, Product.is_active == True)
+        .limit(limit)
+        .all()
+    )
+
+    return [
+        {
+            "id": p.id,
+            "name": p.name,
+            "slug": p.slug,
+            "price": float(p.price),
+            "compare_price": float(p.compare_price) if p.compare_price else None,
+            "image": p.image,
+            "category": p.category.name if p.category else None,
+        }
+        for p in products
+    ]
