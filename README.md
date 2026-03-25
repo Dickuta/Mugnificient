@@ -85,6 +85,12 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 | `POSTGRES_PASSWORD` | `postgres` | Database password |
 | `SECRET_KEY` | (auto-generated) | JWT secret key |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | Token expiry time |
+| `STRIPE_SECRET_KEY` | - | Stripe secret key |
+| `STRIPE_PUBLISHABLE_KEY` | - | Stripe publishable key |
+| `SMTP_HOST` | `smtp.gmail.com` | Email SMTP host |
+| `SMTP_PORT` | `587` | Email SMTP port |
+| `SMTP_USER` | - | Email username |
+| `SMTP_PASSWORD` | - | Email password |
 
 ---
 
@@ -109,12 +115,43 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 | `/api/inventory/suppliers` | Supplier management |
 | `/api/inventory/stock/adjust` | Adjust stock |
 
-## 3. RBAC (Role-Based Access Control)
+## 3. Payment Integration (Stripe)
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/payments/config` | Get payment config |
+| `POST /api/payments/create-intent` | Create payment intent |
+| `POST /api/payments/confirm` | Confirm payment |
+| `POST /api/payments/checkout-session` | Stripe checkout |
+| `POST /api/payments/refund` | Refund (admin) |
+
+## 4. Delivery Integration
+| Endpoint | Description |
+|----------|-------------|
+| `POST /api/delivery/create` | Create shipment |
+| `GET /api/delivery/track/{tracking}` | Track delivery |
+| `POST /api/delivery/cancel/{tracking}` | Cancel shipment |
+| `GET /api/delivery/providers` | List providers |
+
+**Providers:** InHouse Delivery (default), DHL
+
+## 5. Real-Time Notifications
+- WebSocket: `WS /ws/notifications`
+- SSE: `GET /api/notifications/stream`
+- Notifications for orders, stock alerts
+
+## 6. Email Notifications
+- Order confirmation
+- Order shipped
+- Welcome email
+- Password reset
+- Stock alerts
+
+## 7. RBAC (Role-Based Access Control)
 - **Roles**: admin, manager, staff, customer
 - **22 Permissions**: view_products, create_products, manage_inventory, etc.
 - **API Endpoints**: `/api/rbac/*`
 
-## 4. Security Features
+## 8. Security Features
 - Rate limiting (100 req/min default, 10 for auth)
 - Security headers (XSS, CORS, HSTS, etc.)
 - Input validation & sanitization
