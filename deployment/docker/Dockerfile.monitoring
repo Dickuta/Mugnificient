@@ -1,0 +1,14 @@
+# Lightweight monitoring stack for cloud deployment
+# This can be deployed as a separate service if needed
+
+FROM prom/prometheus:latest
+
+# Copy custom prometheus config
+COPY deployment/docker/prometheus.yml /etc/prometheus/prometheus.yml
+
+# Create directory for data
+RUN mkdir -p /prometheus
+
+EXPOSE 9090
+
+CMD ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus", "--storage.tsdb.retention.time=30d", "--web.enable-lifecycle"]

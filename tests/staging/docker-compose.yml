@@ -1,0 +1,129 @@
+# Staging Environment - Production-like testing
+# This environment mirrors production for integration and E2E testing
+
+services:
+  # Main Application
+  app:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile
+      args:
+        - VITE_APP_NAME=Mugnificent (Staging)
+        - VITE_APP_PRIMARY_COLOR=#003366
+        - VITE_APP_SECONDARY_COLOR=#D4AF37
+    container_name: mugstore-staging-app
+    ports:
+      - "8080:80"
+      - "8081:8000"
+    environment:
+      - USE_SQLITE=false
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=mugstore_staging
+      - POSTGRES_USER=mugstore
+      - POSTGRES_PASSWORD=staging123
+      - SECRET_KEY=staging-secret-key-not-for-production
+      - ALLOWED_ORIGINS=http://localhost:8080,http://localhost:8081
+      - DEBUG=true
+      - ENVIRONMENT=staging
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - staging-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: mugstore-staging-db
+    environment:
+      - POSTGRES_DB=mugstore_staging
+      - POSTGRES_USER=mugstore
+      - POSTGRES_PASSWORD=staging123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../../backend/scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5433:5432"
+    restart: unless-stopped
+    networks:
+      - staging-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mugstore -d mugstore_staging"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: mugstore-staging-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6380:6379"
+    restart: unless-stopped
+    networks:
+      - staging-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Prometheus (Monitoring)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: mugstore-staging-prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+    restart: unless-stopped
+    networks:
+      - staging-network
+
+  # Grafana (Dashboards)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: mugstore-staging-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=staging123
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../../deployment/docker/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - staging-network
+
+networks:
+  staging-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:

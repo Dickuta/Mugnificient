@@ -3,11 +3,26 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: 'mugstore-backend'
+  - job_name: 'mugstore-api'
     static_configs:
-      - targets: ['backend:8000']
+      - targets: ['app:8000']
     metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  - job_name: 'mugstore-app'
+    static_configs:
+      - targets: ['app:80']
+    metrics_path: '/health'
     scrape_interval: 30s
+
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
 
   - job_name: 'prometheus'
     static_configs:

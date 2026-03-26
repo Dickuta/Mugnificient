@@ -1,0 +1,16 @@
+{
+  "name": "mugnificient-playwright-tests",
+  "version": "1.0.0",
+  "description": "Playwright end-to-end tests for Mugnificent",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:chromium": "playwright test --project=chromium",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.42.0"
+  }
+}
+}

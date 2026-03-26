@@ -1,38 +1,96 @@
 services:
-  - type: web
-    name: mugstore-db
-    plan: free
+  # PostgreSQL Database
+  - type: pgsql
+    name: mugnificent-db
+    plan: standard
     postgresMajorVersion: "15"
+    ipAllowList: []
 
+  # Redis Cache
+  - type: redis
+    name: mugnificent-redis
+    plan: standard
+    maxmemoryPolicy: allkeys-lru
+
+  # Main Application
   - type: web
-    name: mugstore
-    dockerfilePath: Dockerfile
+    name: mugnificent-app
+    dockerfilePath: deployment/docker/Dockerfile
     dockerContext: .
-    plan: free
+    plan: standard
+    healthCheckPath: /health
     envVars:
       - key: USE_SQLITE
         value: "false"
       - key: POSTGRES_HOST
         fromDatabase:
-          name: mugstore-db
+          name: mugnificent-db
           property: host
       - key: POSTGRES_PORT
         fromDatabase:
-          name: mugstore-db
+          name: mugnificent-db
           property: port
       - key: POSTGRES_DB
         fromDatabase:
-          name: mugstore-db
+          name: mugnificent-db
           property: database
       - key: POSTGRES_USER
         fromDatabase:
-          name: mugstore-db
+          name: mugnificent-db
           property: user
       - key: POSTGRES_PASSWORD
         fromDatabase:
-          name: mugstore-db
+          name: mugnificent-db
           property: password
+      - key: REDIS_HOST
+        fromService:
+          name: mugnificent-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          name: mugnificent-redis
+          property: port
       - key: SECRET_KEY
         generateValue: true
       - key: ALLOWED_ORIGINS
-        value: "https://mugstore.onrender.com"
+        value: "https://mugnificent.onrender.com"
+      - key: DEBUG
+        value: "false"
+      - key: ADMIN_EMAIL
+        value: "admin@mugnificent.com"
+      - key: GF_SECURITY_ADMIN_PASSWORD
+        generateValue: true
+
+  # Prometheus Monitoring (optional - can be disabled to save costs)
+  - type: worker
+    name: mugnificent-prometheus
+    dockerfilePath: deployment/docker/Dockerfile.monitoring
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: PROMETHEUS_RETENTION
+        value: "15d"
+    autoDeploy: false
+
+  # Grafana Dashboards (optional - can be disabled to save costs)
+  - type: web
+    name: mugnificent-grafana
+    image: grafana/grafana:latest
+    plan: free
+    envVars:
+      - key: GF_SECURITY_ADMIN_PASSWORD
+        fromService:
+          name: mugnificent-app
+          property: GF_SECURITY_ADMIN_PASSWORD
+      - key: GF_USERS_ALLOW_SIGN_UP
+        value: "false"
+      - key: GF_INSTALL_PLUGINS
+        value: "grafana-piechart-panel"
+    autoDeploy: false
+
+# Database backup schedule
+backups:
+  - name: daily-backup
+    schedule: daily
+    databases:
+      - mugnificent-db

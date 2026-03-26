@@ -2,12 +2,23 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "Dockerfile"
+    "dockerfilePath": "deployment/docker/Dockerfile",
+    "buildArgs": {
+      "VITE_APP_NAME": "Mugnificent",
+      "VITE_APP_PRIMARY_COLOR": "#003366",
+      "VITE_APP_SECONDARY_COLOR": "#D4AF37"
+    }
   },
   "deploy": {
     "numReplicas": 1,
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 10
+    "restartPolicyMaxRetries": 10,
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 30
   },
-  "name": "mugstore"
+  "name": "mugnificent",
+  "plugins": [
+    "postgres",
+    "redis"
+  ]
 }

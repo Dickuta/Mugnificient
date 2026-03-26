@@ -1,0 +1,140 @@
+# Test Environment - Production-like testing with Docker
+# Run: docker compose up --build
+
+services:
+  # Backend API for testing
+  backend:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile.test
+    container_name: mugnificent-test-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - USE_SQLITE=false
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=mugnificent_test
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=test123
+      - SECRET_KEY=test-secret-key-not-for-production
+      - ALLOWED_ORIGINS=http://localhost:8080,http://localhost:8000
+      - DEBUG=true
+      - ENVIRONMENT=test
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # PostgreSQL Database for tests
+  postgres:
+    image: postgres:15-alpine
+    container_name: mugnificent-test-db
+    environment:
+      - POSTGRES_DB=mugnificent_test
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=test123
+    ports:
+      - "5434:5432"
+    restart: unless-stopped
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test -d mugnificent_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Test Runner - runs all tests and exits
+  test-runner:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile.test
+    container_name: mugnificent-test-runner
+    environment:
+      - USE_SQLITE=false
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=mugnificent_test
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=test123
+      - SECRET_KEY=test-secret-key-not-for-production
+      - ENVIRONMENT=test
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    command: ["pytest", "tests/", "-v", "--tb=short", "--junitxml=/results/junit.xml"]
+    volumes:
+      - ./results:/results
+    networks:
+      - test-network
+    profiles:
+      - test
+
+  # Playwright Test Runner for frontend E2E
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.42.0-focal
+    container_name: mugnificent-test-playwright
+    depends_on:
+      - backend
+    working_dir: /app
+    command: >
+      sh -c "npm ci && npx playwright test --reporter=junit"
+    volumes:
+      - ../../tests/e2e/playwright:/app
+      - ./results:/app/results
+    environment:
+      - BASE_URL=http://backend:8000
+    networks:
+      - test-network
+    profiles:
+      - e2e
+
+  # Frontend for E2E tests
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://backend:8000/api/v1
+    container_name: mugnificent-test-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - test-network
+    profiles:
+      - e2e
+
+  # Test Report Viewer
+  report-viewer:
+    image: python:3.11-slim
+    container_name: mugnificent-test-reports
+    working_dir: /reports
+    command: python -m http.server 8000
+    volumes:
+      - ./results:/reports
+    ports:
+      - "8888:8000"
+    networks:
+      - test-network
+    profiles:
+      - reports
+
+networks:
+  test-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
