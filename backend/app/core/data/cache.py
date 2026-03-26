@@ -92,7 +92,48 @@ class RedisCache:
         if not self.client:
             return False
         try:
-            self.client.setex(key, ttl, json.dumps(value))
+            # Convert SQLAlchemy objects to dictionaries for JSON serialization
+            import datetime
+            def serialize_sqlalchemy(obj):
+                if hasattr(obj, '__dict__'):  # It's a SQLAlchemy model object
+                    result = {}
+                    for key, value in obj.__dict__.items():
+                        if not key.startswith('_'):  # Skip private attributes
+                            if isinstance(value, datetime.datetime):
+                                result[key] = value.isoformat()
+                            elif isinstance(value, datetime.date):
+                                result[key] = value.isoformat()
+                            else:
+                                result[key] = value
+                    return result
+                elif isinstance(value, (datetime.datetime, datetime.date)):
+                    return value.isoformat()
+                else:
+                    return str(obj)
+            
+            # Try to serialize the value, converting SQLAlchemy objects if needed
+            serialized_value = None
+            try:
+                serialized_value = json.dumps(value)
+            except TypeError:
+                # If direct JSON serialization fails, convert SQLAlchemy objects
+                import collections.abc
+                def convert_nested_obj(obj):
+                    if isinstance(obj, (list, tuple)):
+                        return [convert_nested_obj(item) for item in obj]
+                    elif isinstance(obj, collections.abc.Mapping):
+                        return {key: convert_nested_obj(val) for key, val in obj.items()}
+                    elif hasattr(obj, '__dict__'):
+                        return serialize_sqlalchemy(obj)
+                    elif isinstance(obj, (datetime.datetime, datetime.date)):
+                        return obj.isoformat()
+                    else:
+                        return obj
+                
+                converted_value = convert_nested_obj(value)
+                serialized_value = json.dumps(converted_value, default=str)
+            
+            self.client.setex(key, ttl, serialized_value)
             return True
         except Exception as e:
             logger.warning(f"Redis set error: {e}")
