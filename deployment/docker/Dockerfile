@@ -1,29 +1,3 @@
-# Build args for frontend
-ARG VITE_APP_NAME=Mugnificent
-ARG VITE_APP_PRIMARY_COLOR=#003366
-ARG VITE_APP_SECONDARY_COLOR=#D4AF37
-
-# Build stage for frontend
-FROM node:18-alpine as frontend-builder
-
-WORKDIR /frontend
-
-COPY frontend/package*.json ./
-RUN npm ci
-
-COPY frontend/ .
-
-# Set build args for frontend
-ARG VITE_APP_NAME
-ARG VITE_APP_PRIMARY_COLOR
-ARG VITE_APP_SECONDARY_COLOR
-
-ENV VITE_APP_NAME=${VITE_APP_NAME}
-ENV VITE_APP_PRIMARY_COLOR=${VITE_APP_PRIMARY_COLOR}
-ENV VITE_APP_SECONDARY_COLOR=${VITE_APP_SECONDARY_COLOR}
-
-RUN npm run build
-
 # Production stage
 FROM python:3.11-slim
 
@@ -42,8 +16,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ .
 
-# Copy frontend build
-COPY --from=frontend-builder /frontend/dist/spa /var/www/html
+# Copy pre-built frontend
+COPY frontend/dist/spa /var/www/html
 
 # Configure nginx
 RUN echo "server { \
@@ -70,7 +44,6 @@ RUN echo "server { \
 }" > /etc/nginx/sites-available/default
 
 RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
-RUN rm -f /etc/nginx/sites-enabled/default
 
 RUN mkdir -p /app/images
 

@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
 
-from app.core.database import get_db
+from app.core.data.database import get_db
 from app.core.security import get_current_user
-from app.core.rbac import require_permission, Permissions, has_permission
+from app.core.utils.rbac import require_permission, Permissions, has_permission
 from app.models.models import User, Role, Permission as PermissionModel, UserRole
 
 
@@ -241,7 +241,7 @@ def set_staff_status(
 def get_my_permissions(
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
-    from app.core.rbac import get_user_permissions
+    from app.core.utils.rbac import get_user_permissions
 
     return {
         "user_id": current_user.id,

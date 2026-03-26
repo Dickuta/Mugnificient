@@ -10,8 +10,7 @@ from sqlalchemy.types import DECIMAL as Decimal
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from sqlalchemy import Table
-from app.core.data.database import Base
-
+from app.core.data.database import Base 
 
 # RBAC Models - Association Table
 role_permissions = Table(

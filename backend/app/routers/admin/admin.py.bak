@@ -4,7 +4,7 @@ from sqlalchemy import func
 from datetime import datetime, timedelta
 from typing import Optional
 
-from app.core.data.database import get_db
+from app.core.database import get_db
 from app.models.models import User, Product, Category, Order, OrderItem
 from app.core.security import get_current_user
 

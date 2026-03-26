@@ -38,4 +38,21 @@ Thumbs.db
 # Environment
 .env
 .env.local
+.env.*
+!.env.example
 *.log
+
+# Trash folder (not for repo)
+_trash/
+
+# Test results
+tests/results/
+tests/e2e/playwright/test-report/
+tests/e2e/playwright/results/
+
+# Pytest cache
+.pytest_cache/
+
+# Storage
+storage/images/
+_trash

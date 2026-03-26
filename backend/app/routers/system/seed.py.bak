@@ -3,10 +3,10 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import random
 
-from app.core.data.database import get_db
+from app.core.database import get_db
 from app.core.security import get_current_user
-from app.core.utils.rbac import require_permission, Permissions
-from app.core.ml.forecasting import ForecastingService
+from app.core.rbac import require_permission, Permissions
+from app.core.forecasting import ForecastingService
 from app.models.models import User, Product, SalesHistory
 
 router = APIRouter(prefix="/seed", tags=["seed"])

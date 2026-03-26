@@ -1,0 +1,339 @@
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Text,
+)
+from sqlalchemy.types import DECIMAL as Decimal
+from sqlalchemy.orm import relationship
+from datetime import datetime
+
+from app.core.data.database import Base
+
+
+# User and RBAC Models
+class Permission(Base):
+    __tablename__ = "permissions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), unique=True, nullable=False)
+    description = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Role(Base):
+    __tablename__ = "roles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), unique=True, nullable=False)
+    description = Column(String(255), nullable=True)
+    is_default = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(100), unique=True, nullable=False, index=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    hashed_password = Column(String(255), nullable=False)
+    first_name = Column(String(100), default="")
+    last_name = Column(String(100), default="")
+    phone = Column(String(20), default="")
+    address = Column(String(255), default="")
+    city = Column(String(100), default="")
+    state = Column(String(100), default="")
+    zip_code = Column(String(20), default="")
+    country = Column(String(100), default="United States")
+    is_active = Column(Boolean, default=True)
+    is_staff = Column(Boolean, default=False)
+    is_superuser = Column(Boolean, default=False)
+    role_id = Column(Integer, ForeignKey("roles.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    role = relationship("Role")
+
+
+# E-commerce Models
+class Category(Base):
+    __tablename__ = "categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False, index=True)
+    slug = Column(String(100), unique=True, nullable=False, index=True)
+    description = Column(String(500), default="")
+    image = Column(String(255), default="")
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Product(Base):
+    __tablename__ = "products"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(200), nullable=False, index=True)
+    slug = Column(String(200), unique=True, nullable=False, index=True)
+    description = Column(Text, nullable=False)
+    price = Column(Decimal(10, 2), nullable=False)
+    compare_price = Column(Decimal(10, 2), default=0)
+    stock = Column(Integer, default=0)
+    sku = Column(String(100), default="", index=True)
+    is_featured = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True)
+    weight = Column(Decimal(8, 2), default=0)
+    image = Column(String(255), default="")
+    category_id = Column(Integer, ForeignKey("categories.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    category = relationship("Category")
+
+
+class Cart(Base):
+    __tablename__ = "carts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    session_id = Column(String(100), index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class CartItem(Base):
+    __tablename__ = "cart_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    cart_id = Column(Integer, ForeignKey("carts.id"))
+    product_id = Column(Integer, ForeignKey("products.id"))
+    quantity = Column(Integer, default=1)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Order(Base):
+    __tablename__ = "orders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    order_number = Column(String(20), unique=True, nullable=False, index=True)
+    status = Column(String(20), default="pending", index=True)
+    subtotal = Column(Decimal(10, 2), default=0)
+    tax = Column(Decimal(10, 2), default=0)
+    shipping_cost = Column(Decimal(10, 2), default=0)
+    discount = Column(Decimal(10, 2), default=0)
+    total = Column(Decimal(10, 2), default=0)
+    is_paid = Column(Boolean, default=False, index=True)
+    shipping_name = Column(String(200), nullable=False)
+    shipping_address_line1 = Column(String(255), nullable=False)
+    shipping_address_line2 = Column(String(255), default="")
+    shipping_city = Column(String(100), nullable=False)
+    shipping_state = Column(String(100), nullable=False)
+    shipping_zip_code = Column(String(20), nullable=False)
+    shipping_country = Column(String(100), nullable=False, default="United States")
+    shipping_phone = Column(String(20), nullable=False)
+    notes = Column(Text, default="")
+    shipped_at = Column(DateTime, nullable=True)
+    delivered_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class OrderItem(Base):
+    __tablename__ = "order_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id"))
+    product_id = Column(Integer, ForeignKey("products.id"))
+    product_name = Column(String(200), nullable=False)
+    product_price = Column(Decimal(10, 2), nullable=False)
+    quantity = Column(Integer, default=1)
+    subtotal = Column(Decimal(10, 2), default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# Inventory & Forecasting Models
+class RefillRequest(Base):
+    __tablename__ = "refill_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=True)
+    quantity_requested = Column(Integer, default=0)
+    quantity_fulfilled = Column(Integer, default=0)
+    status = Column(String(20), default="pending")
+    estimated_cost = Column(Decimal(10, 2), default=0)
+    actual_cost = Column(Decimal(10, 2), nullable=True)
+    notes = Column(Text, default="")
+    requested_at = Column(DateTime, default=datetime.utcnow)
+    approved_at = Column(DateTime, nullable=True)
+    ordered_at = Column(DateTime, nullable=True)
+    received_at = Column(DateTime, nullable=True)
+
+    product = relationship("Product")
+    supplier = relationship("Supplier")
+
+
+class SeasonalPattern(Base):
+    __tablename__ = "seasonal_patterns"
+
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    month = Column(Integer, nullable=False)
+    demand_multiplier = Column(Decimal(5, 2), default=1.0)
+    notes = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    product = relationship("Product")
+
+
+class SalesHistory(Base):
+    __tablename__ = "sales_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    date = Column(DateTime, nullable=False)
+    quantity_sold = Column(Integer, default=0)
+    revenue = Column(Decimal(10, 2), default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    product = relationship("Product")
+
+
+class Forecast(Base):
+    __tablename__ = "forecasts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    forecast_date = Column(DateTime, nullable=False)
+    predicted_quantity = Column(Integer, nullable=False)
+    confidence_low = Column(Integer, default=0)
+    confidence_high = Column(Integer, default=0)
+    is_auto_order = Column(Boolean, default=False)
+    auto_order_created = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    product = relationship("Product")
+
+
+class PurchaseOrder(Base):
+    __tablename__ = "purchase_orders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_number = Column(String(20), unique=True, nullable=False)
+    supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=True)
+    status = Column(String(20), default="pending")
+    total_amount = Column(Decimal(10, 2), default=0)
+    notes = Column(Text, default="")
+    expected_delivery = Column(DateTime, nullable=True)
+    is_auto_generated = Column(Boolean, default=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    supplier = relationship("Supplier")
+
+
+class PurchaseOrderItem(Base):
+    __tablename__ = "purchase_order_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    purchase_order_id = Column(Integer, ForeignKey("purchase_orders.id"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    quantity = Column(Integer, nullable=False)
+    unit_cost = Column(Decimal(10, 2), default=0)
+    received_quantity = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class AutoOrderSettings(Base):
+    __tablename__ = "auto_order_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False, unique=True)
+    enabled = Column(Boolean, default=False)
+    min_stock_threshold = Column(Integer, default=10)
+    order_quantity = Column(Integer, default=50)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    product = relationship("Product")
+
+
+class Supplier(Base):
+    __tablename__ = "suppliers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(200), nullable=False)
+    contact_name = Column(String(200), default="")
+    email = Column(String(255), default="")
+    phone = Column(String(20), default="")
+    address = Column(String(255), default="")
+    city = Column(String(100), default="")
+    state = Column(String(100), default="")
+    zip_code = Column(String(20), default="")
+    country = Column(String(100), default="United States")
+    is_active = Column(Boolean, default=True)
+    notes = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class StockItem(Base):
+    __tablename__ = "stock_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False, unique=True)
+    current_quantity = Column(Integer, default=0)
+    reserved_quantity = Column(Integer, default=0)
+    available_quantity = Column(Integer, default=0)
+    min_stock_level = Column(Integer, default=10)
+    max_stock_level = Column(Integer, default=1000)
+    unit_cost = Column(Decimal(10, 2), default=0)
+    last_updated = Column(DateTime, default=datetime.utcnow)
+    last_count_date = Column(DateTime, nullable=True)
+    notes = Column(Text, default="")
+
+    product = relationship("Product")
+
+
+class StockMovement(Base):
+    __tablename__ = "stock_movements"
+
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"))
+    movement_type = Column(String(20), nullable=False)
+    quantity = Column(Integer, nullable=False)
+    reference_type = Column(String(50))
+    reference_id = Column(Integer)
+    notes = Column(Text, default="")
+    recorded_by = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    product = relationship("Product")
+    user = relationship("User")
+
+
+class RestockAlert(Base):
+    __tablename__ = "restock_alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"))
+    current_stock = Column(Integer, nullable=False)
+    threshold = Column(Integer, nullable=False)
+    message = Column(Text, nullable=False)
+    is_resolved = Column(Boolean, default=False)
+    resolved_by = Column(Integer, ForeignKey("users.id"))
+    resolved_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    product = relationship("Product")
+    user = relationship("User")

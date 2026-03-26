@@ -3,7 +3,7 @@ from fastapi import HTTPException, Depends
 from typing import List, Optional
 import re
 
-from app.core.database import get_db
+from app.core.data.database import get_db
 from app.core.security import get_current_user
 from app.models.models import User, Role, Permission
 

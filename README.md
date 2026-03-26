@@ -93,23 +93,40 @@ This project was developed during a university hackathon to solve the University
 
 ### Quick Start - Production Ready
 
-#### Option 1: Docker Compose (Recommended)
+#### Option 1: Using Scripts (Recommended)
+```bash
+# Navigate to project
+cd /Users/admin/workspaces/_active-projects/mugnificient
+
+# Start Docker Desktop (must be running)
+
+# Run the application
+./scripts/start.sh
+
+# Application available at http://localhost
+```
+
+#### Option 2: Docker Compose Direct
 ```bash
 # Clone the repository
 git clone <repository-url>
 cd Project-Hackathon
 
-# Navigate to deployment directory
-cd deployment/docker
-
-# Copy environment file and customize
-cp .env.example .env
-# Edit .env with your specific values
-
 # Start the application
-docker-compose up -d
+docker compose -f deployment/docker/docker-compose.yml up -d
 
 # Application will be available at http://localhost
+```
+
+### Available Commands
+```bash
+./scripts/run.sh start       # Start application
+./scripts/run.sh stop        # Stop application
+./scripts/run.sh test        # Run all tests
+./scripts/run.sh test-api    # Run API tests only
+./scripts/run.sh test-e2e    # Run E2E browser tests
+./scripts/run.sh status      # Show running services
+./scripts/run.sh logs        # View application logs
 ```
 
 #### Option 2: Development Setup
@@ -405,10 +422,27 @@ Once running, visit:
 
 ## Testing
 
+See [docs/TESTING.md](docs/TESTING.md) for complete testing guide.
+
 ```bash
-cd backend
-pytest tests/ -v
+# Run all tests
+./scripts/run.sh test
+
+# Run specific test types
+./scripts/run.sh test-api
+./scripts/run.sh test-e2e
+./scripts/run.sh test-unit
+./scripts/run.sh test-security
 ```
+
+## Test Credentials
+
+| Role | Username | Password |
+|------|----------|----------|
+| Admin | admin | admin123 |
+| Warehouse | warehouse | warehouse123 |
+| Customer | student1 | student123 |
+| Customer | alumni1 | alumni123 |
 
 ## Environment Variables
 

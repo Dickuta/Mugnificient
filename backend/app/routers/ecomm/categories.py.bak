@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.core.data.database import get_db
-from app.core.data.cache import cached, invalidate_cache
+from app.core.database import get_db
+from app.core.cache import cached, invalidate_cache
 from app.models.models import Category
 from app.schemas.schemas import CategoryCreate, CategoryResponse
 

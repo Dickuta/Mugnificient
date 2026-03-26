@@ -164,7 +164,7 @@ async def websocket_notifications(websocket: WebSocket):
             from app.core.security import decode_token
 
             payload = decode_token(token)
-            from app.core.data.database import SessionLocal
+            from app.core.database import SessionLocal
             from app.models.models import User
 
             db = SessionLocal()
