@@ -1,66 +1,122 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
-    <q-header elevated class="bg-uos-blue text-white">
-      <q-toolbar>
-        <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
-        <q-avatar size="40px" class="q-mr-sm">
+  <q-layout view="hHh lpR fff">
+    <!-- Enhanced E-commerce Header -->
+    <q-header elevated class="bg-primary text-white">
+      <!-- Top Bar -->
+      <div class="bg-secondary q-py-xs">
+        <div class="row justify-between items-center q-px-md" style="max-width: 1400px; margin: 0 auto;">
+          <div class="text-caption">Welcome to {{ appName }} - University of Suffolk Official Store</div>
+          <div class="text-caption" v-if="authStore.isAuthenticated">
+            <q-icon name="person" size="xs" class="q-mr-xs" />
+            {{ authStore.user?.username }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Header -->
+      <q-toolbar class="q-py-md">
+        <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" class="q-mr-sm" />
+        
+        <q-avatar size="50px" class="q-mr-md bg-white">
           <img src="/images/uos-logo.png" alt="UoS Logo" @error="handleLogoError" />
         </q-avatar>
-        <q-toolbar-title>
-          <router-link to="/" class="text-white text-decoration-none">{{ appName }}</router-link>
-        </q-toolbar-title>
+        
+        <div class="text-h5 text-weight-bold">{{ appName }}</div>
+        
         <q-space />
-        <q-btn flat round icon="shopping_cart" to="/cart">
+        
+        <!-- Search Bar -->
+        <q-input
+          v-model="searchQuery"
+          dense
+          outlined
+          bg-color="white"
+          placeholder="Search products..."
+          class="q-mx-lg"
+          style="width: 400px; max-width: 30vw;"
+          @keyup.enter="searchProducts"
+        >
+          <template v-slot:append>
+            <q-btn round flat icon="search" @click="searchProducts" />
+          </template>
+        </q-input>
+        
+        <!-- Cart with Badge -->
+        <q-btn flat round icon="shopping_cart" to="/cart" class="q-mx-sm">
           <q-badge color="red" floating>{{ cartStore.totalItems }}</q-badge>
+          <q-tooltip>Cart</q-tooltip>
         </q-btn>
-        <q-btn v-if="!authStore.isAuthenticated" flat label="Login" to="/auth/login" />
-        <q-btn v-else flat round>
-          <q-avatar size="26px">{{ authStore.user?.username?.[0]?.toUpperCase() }}</q-avatar>
-          <q-menu>
-            <q-list style="min-width: 150px">
+        
+        <!-- User Menu -->
+        <q-btn v-if="!authStore.isAuthenticated" flat label="Sign In" to="/auth/login" class="q-ml-md" />
+        <q-btn v-else flat round class="q-ml-md">
+          <q-avatar size="32px" color="white" text-color="primary">
+            {{ authStore.user?.username?.[0]?.toUpperCase() }}
+          </q-avatar>
+          <q-menu anchor="top right" self="top right" :offset="[0, 10]">
+            <q-list style="min-width: 200px">
               <q-item clickable v-close-popup to="/profile">
-                <q-item-section>Profile</q-item-section>
+                <q-item-section avatar><q-icon name="person" /></q-item-section>
+                <q-item-section>My Profile</q-item-section>
               </q-item>
               <q-item clickable v-close-popup to="/orders">
-                <q-item-section>Orders</q-item-section>
+                <q-item-section avatar><q-icon name="shopping_bag" /></q-item-section>
+                <q-item-section>My Orders</q-item-section>
               </q-item>
+              <q-separator />
+              <q-item-label header>Staff Menu</q-item-label>
               <q-item v-if="authStore.user?.is_staff" clickable v-close-popup to="/admin">
+                <q-item-section avatar><q-icon name="admin_panel_settings" /></q-item-section>
                 <q-item-section>Admin Dashboard</q-item-section>
               </q-item>
               <q-item v-if="authStore.user?.is_staff" clickable v-close-popup to="/forecasting">
-                <q-item-section>Stock Forecasting</q-item-section>
+                <q-item-section avatar><q-icon name="analytics" /></q-item-section>
+                <q-item-section>Forecasting</q-item-section>
               </q-item>
               <q-item v-if="authStore.user?.is_staff" clickable v-close-popup to="/inventory-ml">
+                <q-item-section avatar><q-icon name="inventory" /></q-item-section>
                 <q-item-section>Inventory ML</q-item-section>
               </q-item>
               <q-separator />
               <q-item clickable v-close-popup @click="logout">
+                <q-item-section avatar><q-icon name="logout" /></q-item-section>
                 <q-item-section>Logout</q-item-section>
               </q-item>
             </q-list>
           </q-menu>
         </q-btn>
       </q-toolbar>
+
+      <!-- Navigation Bar -->
+      <q-tabs v-model="currentTab" align="left" class="bg-primary shadow-2">
+        <q-tab name="home" icon="home" label="Home" to="/" />
+        <q-tab name="products" icon="shopping_bag" label="All Products" to="/products" />
+        <q-tab name="featured" icon="star" label="Featured" to="/products?featured=true" />
+        <q-tab name="new" icon="new_releases" label="New Arrivals" to="/products?new=true" />
+      </q-tabs>
     </q-header>
 
+    <!-- Side Drawer -->
     <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
       <q-list>
-        <q-item-label header>Navigation</q-item-label>
+        <q-item-label header class="text-primary">Shop Categories</q-item-label>
         <q-item clickable to="/" v-close-popup>
           <q-item-section avatar><q-icon name="home" /></q-item-section>
           <q-item-section>Home</q-item-section>
         </q-item>
         <q-item clickable to="/products" v-close-popup>
           <q-item-section avatar><q-icon name="shopping_bag" /></q-item-section>
-          <q-item-section>Products</q-item-section>
+          <q-item-section>All Products</q-item-section>
         </q-item>
         <q-item clickable to="/cart" v-close-popup>
           <q-item-section avatar><q-icon name="shopping_cart" /></q-item-section>
-          <q-item-section>Cart</q-item-section>
+          <q-item-section>Shopping Cart</q-item-section>
         </q-item>
+        <q-separator />
+        <q-item-label header class="text-primary" v-if="authStore.user?.is_staff">Staff Area</q-item-label>
         <q-item v-if="authStore.user?.is_staff" clickable to="/admin" v-close-popup>
           <q-item-section avatar><q-icon name="admin_panel_settings" /></q-item-section>
-          <q-item-section>Admin</q-item-section>
+          <q-item-section>Admin Dashboard</q-item-section>
         </q-item>
         <q-item v-if="authStore.user?.is_staff" clickable to="/forecasting" v-close-popup>
           <q-item-section avatar><q-icon name="analytics" /></q-item-section>
@@ -91,9 +147,17 @@ const cartStore = useCartStore()
 
 const appName = import.meta.env.VITE_APP_NAME || 'Mugnificent'
 const leftDrawerOpen = ref(false)
+const currentTab = ref('home')
+const searchQuery = ref('')
 
 function toggleLeftDrawer() {
   leftDrawerOpen.value = !leftDrawerOpen.value
+}
+
+function searchProducts() {
+  if (searchQuery.value.trim()) {
+    router.push(`/products?search=${encodeURIComponent(searchQuery.value)}`)
+  }
 }
 
 function logout() {

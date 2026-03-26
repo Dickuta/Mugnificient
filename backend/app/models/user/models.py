@@ -44,7 +44,8 @@ class Role(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     permissions = relationship("Permission", secondary="role_permissions", back_populates="roles")
-    users = relationship("User", back_populates="role")
+    default_users = relationship("User", back_populates="role")
+    users_with_role = relationship("UserRole", back_populates="role")
 
 
 class UserRole(Base):
@@ -55,8 +56,8 @@ class UserRole(Base):
     role_id = Column(Integer, ForeignKey("roles.id"))
     assigned_at = Column(DateTime, default=datetime.utcnow)
     
-    user = relationship("User", back_populates="user_roles")
-    role = relationship("Role", back_populates="users")
+    user = relationship("User", back_populates="assigned_roles")
+    role = relationship("Role", back_populates="users_with_role")
 
 
 class User(Base):
@@ -82,8 +83,8 @@ class User(Base):
 
     # Relationships
     role_id = Column(Integer, ForeignKey("roles.id"))
-    role = relationship("Role", back_populates="users")
-    user_roles = relationship("UserRole", back_populates="user")
+    role = relationship("Role", back_populates="default_users")
+    assigned_roles = relationship("UserRole", back_populates="user")
     addresses = relationship("Address", back_populates="user")
     reviews = relationship("Review", back_populates="user")
     carts = relationship("Cart", back_populates="user")
