@@ -63,14 +63,14 @@
             <template v-slot:body-cell-actions="props">
               <q-td :props="props">
                 <q-btn-group flat>
-                  <q-btn flat dense color="primary" icon="visibility" @click="handleViewShipmentDetails(props.row)" />
+                  <q-btn flat dense color="primary" icon="visibility" @click="viewShipmentDetails(props.row)" />
                   <q-btn 
                     v-if="isStaff && props.row.status === 'shipped'" 
                     flat 
                     dense 
                     color="warning" 
                     icon="cancel" 
-                    @click="handleCancelShipment(props.row)"
+                    @click="cancelShipment(props.row)"
                   />
                 </q-btn-group>
               </q-td>

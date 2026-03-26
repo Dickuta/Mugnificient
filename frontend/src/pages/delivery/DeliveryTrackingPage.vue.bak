@@ -63,14 +63,14 @@
             <template v-slot:body-cell-actions="props">
               <q-td :props="props">
                 <q-btn-group flat>
-                  <q-btn flat dense color="primary" icon="visibility" @click="handleViewShipmentDetails(props.row)" />
+                  <q-btn flat dense color="primary" icon="visibility" @click="viewShipmentDetails(props.row)" />
                   <q-btn 
                     v-if="isStaff && props.row.status === 'shipped'" 
                     flat 
                     dense 
                     color="warning" 
                     icon="cancel" 
-                    @click="handleCancelShipment(props.row)"
+                    @click="cancelShipment(props.row)"
                   />
                 </q-btn-group>
               </q-td>
@@ -463,7 +463,7 @@ async function handleTrackShipment() {
   }
 }
 
-async function handleCreateShipment() {
+async function createShipment() {
   if (!newShipment.value.orderId) {
     $q.notify({ type: 'warning', message: 'Please select an order' })
     return
@@ -491,7 +491,7 @@ async function handleCreateShipment() {
   }
 }
 
-async function handleCancelShipment(order) {
+async function cancelShipment(order) {
   $q.dialog({
     title: 'Cancel Shipment',
     message: `Are you sure you want to cancel shipment for order ${order.order_number}?`,
@@ -513,7 +513,7 @@ async function handleCancelShipment(order) {
   })
 }
 
-function handleViewShipmentDetails(order) {
+function viewShipmentDetails(order) {
   detailsDialog.value.order = order
   detailsDialog.value.show = true
 }
