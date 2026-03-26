@@ -1,101 +1,102 @@
-const API_BASE_URL = '/api'
+const API_VERSION = '/v1'
+const API_BASE_URL = `/api${API_VERSION}`
 
 export const ENDPOINTS = {
   _base: API_BASE_URL,
   auth: {
-    register: `${API_BASE_URL}/auth/register`,
-    login: `${API_BASE_URL}/auth/login`,
-    me: `${API_BASE_URL}/auth/me`
+    register: '/auth/register',
+    login: '/auth/login',
+    me: '/auth/me'
   },
   products: {
-    list: `${API_BASE_URL}/products/`,
-    featured: `${API_BASE_URL}/products/featured`,
-    bySlug: (slug) => `${API_BASE_URL}/products/${slug}`,
-    reviews: (id) => `${API_BASE_URL}/products/${id}/reviews`
+    list: '/products/',
+    featured: '/products/featured',
+    bySlug: (slug) => `/products/${slug}`,
+    reviews: (id) => `/products/${id}/reviews`
   },
   categories: {
-    list: `${API_BASE_URL}/categories/`,
-    bySlug: (slug) => `${API_BASE_URL}/categories/${slug}`
+    list: '/categories/',
+    bySlug: (slug) => `/categories/${slug}`
   },
   cart: {
-    get: `${API_BASE_URL}/cart/`,
-    add: `${API_BASE_URL}/cart/add`,
-    update: (id) => `${API_BASE_URL}/cart/item/${id}`,
-    remove: (id) => `${API_BASE_URL}/cart/item/${id}`,
-    clear: `${API_BASE_URL}/cart/clear`
+    get: '/cart/',
+    add: '/cart/add',
+    update: (id) => `/cart/item/${id}`,
+    remove: (id) => `/cart/item/${id}`,
+    clear: '/cart/clear'
   },
   orders: {
-    list: `${API_BASE_URL}/orders/`,
-    byNumber: (num) => `${API_BASE_URL}/orders/${num}`,
-    checkout: `${API_BASE_URL}/orders/checkout`,
-    pay: (num) => `${API_BASE_URL}/orders/${num}/pay`
+    list: '/orders/',
+    byNumber: (num) => `/orders/${num}`,
+    checkout: '/orders/checkout',
+    pay: (num) => `/orders/${num}/pay`
   },
   users: {
-    get: (id) => `${API_BASE_URL}/users/${id}`,
-    update: (id) => `${API_BASE_URL}/users/${id}`,
-    addresses: (id) => `${API_BASE_URL}/users/${id}/addresses`,
-    addAddress: (id) => `${API_BASE_URL}/users/${id}/addresses`
+    get: (id) => `/users/${id}`,
+    update: (id) => `/users/${id}`,
+    addresses: (id) => `/users/${id}/addresses`,
+    addAddress: (id) => `/users/${id}/addresses`
   },
   admin: {
-    dashboard: `${API_BASE_URL}/admin/dashboard`,
-    salesByCategory: `${API_BASE_URL}/admin/sales-by-category`,
-    salesOverTime: `${API_BASE_URL}/admin/sales-over-time`,
-    topProducts: `${API_BASE_URL}/admin/top-products`,
-    recentOrders: `${API_BASE_URL}/admin/recent-orders`
+    dashboard: '/admin/dashboard',
+    salesByCategory: '/admin/sales-by-category',
+    salesOverTime: '/admin/sales-over-time',
+    topProducts: '/admin/top-products',
+    recentOrders: '/admin/recent-orders'
   },
   forecasting: {
-    dashboard: `${API_BASE_URL}/forecasting/dashboard`,
-    forecast: (id) => `${API_BASE_URL}/forecasting/products/${id}/forecast`,
-    seasonalPatterns: (id) => `${API_BASE_URL}/forecasting/products/${id}/seasonal-patterns`,
-    recordSales: (id) => `${API_BASE_URL}/forecasting/products/${id}/record-sales`,
-    autoOrderSettings: (id) => `${API_BASE_URL}/forecasting/auto-order/settings/${id}`,
-    autoOrderProcess: `${API_BASE_URL}/forecasting/auto-order/process`,
-    purchaseOrders: `${API_BASE_URL}/forecasting/purchase-orders`,
-    purchaseOrderById: (id) => `${API_BASE_URL}/forecasting/purchase-orders/${id}`
+    dashboard: '/forecasting/dashboard',
+    forecast: (id) => `/forecasting/products/${id}/forecast`,
+    seasonalPatterns: (id) => `/forecasting/products/${id}/seasonal-patterns`,
+    recordSales: (id) => `/forecasting/products/${id}/record-sales`,
+    autoOrderSettings: (id) => `/forecasting/auto-order/settings/${id}`,
+    autoOrderProcess: '/forecasting/auto-order/process',
+    purchaseOrders: '/forecasting/purchase-orders',
+    purchaseOrderById: (id) => `/forecasting/purchase-orders/${id}`
   },
   inventory: {
-    dashboard: `${API_BASE_URL}/inventory/dashboard`,
-    products: `${API_BASE_URL}/inventory/products`,
-    alerts: `${API_BASE_URL}/inventory/alerts`,
-    adjustStock: `${API_BASE_URL}/inventory/stock/adjust`,
-    resolveAlert: (id) => `${API_BASE_URL}/inventory/alerts/${id}/resolve`,
-    suppliers: `${API_BASE_URL}/inventory/suppliers`
+    dashboard: '/inventory/dashboard',
+    products: '/inventory/products',
+    alerts: '/inventory/alerts',
+    adjustStock: '/inventory/stock/adjust',
+    resolveAlert: (id) => `/inventory/alerts/${id}/resolve`,
+    suppliers: '/inventory/suppliers'
   },
   inventoryML: {
-    predictions: `${API_BASE_URL}/inventory-ml/predictions`,
-    predictionByProduct: (id) => `${API_BASE_URL}/inventory-ml/predictions/${id}`,
-    refillRequests: `${API_BASE_URL}/inventory-ml/refill-requests`,
-    refillRequestById: (id) => `${API_BASE_URL}/inventory-ml/refill-requests/${id}`,
-    approveRefill: (id) => `${API_BASE_URL}/inventory-ml/refill-requests/${id}/approve`,
-    markOrdered: (id) => `${API_BASE_URL}/inventory-ml/refill-requests/${id}/mark-ordered`,
-    receiveRefill: (id) => `${API_BASE_URL}/inventory-ml/refill-requests/${id}/receive`,
-    cancelRefill: (id) => `${API_BASE_URL}/inventory-ml/refill-requests/${id}/cancel`
+    predictions: '/inventory-ml/predictions',
+    predictionByProduct: (id) => `/inventory-ml/predictions/${id}`,
+    refillRequests: '/inventory-ml/refill-requests',
+    refillRequestById: (id) => `/inventory-ml/refill-requests/${id}`,
+    approveRefill: (id) => `/inventory-ml/refill-requests/${id}/approve`,
+    markOrdered: (id) => `/inventory-ml/refill-requests/${id}/mark-ordered`,
+    receiveRefill: (id) => `/inventory-ml/refill-requests/${id}/receive`,
+    cancelRefill: (id) => `/inventory-ml/refill-requests/${id}/cancel`
   },
   recommendations: {
-    popular: `${API_BASE_URL}/recommendations/popular`,
-    newArrivals: `${API_BASE_URL}/recommendations/new-arrivals`,
-    similar: (id) => `${API_BASE_URL}/recommendations/similar/${id}`,
-    boughtTogether: (id) => `${API_BASE_URL}/recommendations/bought-together/${id}`,
-    forYou: `${API_BASE_URL}/recommendations/for-you`
+    popular: '/recommendations/popular',
+    newArrivals: '/recommendations/new-arrivals',
+    similar: (id) => `/recommendations/similar/${id}`,
+    boughtTogether: (id) => `/recommendations/bought-together/${id}`,
+    forYou: '/recommendations/for-you'
   },
   seed: {
-    forecasting: `${API_BASE_URL}/seed/forecasting`,
-    stock: `${API_BASE_URL}/seed/stock`
+    forecasting: '/seed/forecasting',
+    stock: '/seed/stock'
   },
   rbac: {
-    permissions: `${API_BASE_URL}/rbac/permissions`,
-    roles: `${API_BASE_URL}/rbac/roles`,
-    userRoles: (userId) => `${API_BASE_URL}/rbac/users/${userId}/roles`,
-    assignRole: (userId) => `${API_BASE_URL}/rbac/users/${userId}/roles`,
-    setStaff: (userId) => `${API_BASE_URL}/rbac/users/${userId}/staff`,
-    myPermissions: `${API_BASE_URL}/rbac/my-permissions`,
-    seedDefaults: `${API_BASE_URL}/rbac/seed-defaults`
+    permissions: '/rbac/permissions',
+    roles: '/rbac/roles',
+    userRoles: (userId) => `/rbac/users/${userId}/roles`,
+    assignRole: (userId) => `/rbac/users/${userId}/roles`,
+    setStaff: (userId) => `/rbac/users/${userId}/staff`,
+    myPermissions: '/rbac/my-permissions',
+    seedDefaults: '/rbac/seed-defaults'
   },
   delivery: {
-    create: `${API_BASE_URL}/delivery/create`,
-    track: (trackingNumber) => `${API_BASE_URL}/delivery/track/${trackingNumber}`,
-    cancel: (trackingNumber) => `${API_BASE_URL}/delivery/cancel/${trackingNumber}`,
-    providers: `${API_BASE_URL}/delivery/providers`
+    create: '/delivery/create',
+    track: (trackingNumber) => `/delivery/track/${trackingNumber}`,
+    cancel: (trackingNumber) => `/delivery/cancel/${trackingNumber}`,
+    providers: '/delivery/providers'
   }
 }
 

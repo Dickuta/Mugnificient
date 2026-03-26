@@ -1,17 +1,31 @@
-import { configure } from 'quasar/wrappers';
+const { configure } = require('quasar/wrappers');
 
-export default configure(function () {
+module.exports = configure(function (ctx) {
   return {
     boot: ['api'],
+    
     css: ['app.css'],
-    extras: ['roboto-font', 'material-icons'],
+    
+    extras: [
+      'roboto-font',
+      'material-icons',
+    ],
+
     build: {
-      target: { browser: ['es2019', 'edge88', 'firefox78', 'chrome87', 'safari13.1'] },
+      target: {
+        browser: [ 'es2019', 'edge88', 'firefox78', 'chrome87', 'safari13.1' ]
+      },
+      
       vueRouterMode: 'history',
     },
-    devServer: { open: false, port: 9000 },
-    framework: { 
-      config: { 
+
+    devServer: {
+      open: false,
+      port: 9000,
+    },
+
+    framework: {
+      config: {
         brand: {
           primary: process.env.VITE_APP_PRIMARY_COLOR || '#003366',
           secondary: process.env.VITE_APP_SECONDARY_COLOR || '#D4AF37',
@@ -22,14 +36,36 @@ export default configure(function () {
           info: '#31CCEC',
           warning: '#F2C037'
         }
-      }, 
-      plugins: ['Notify'] 
+      },
+      plugins: [
+        'Notify'
+      ]
     },
+
     animations: [],
-    ssr: { pwa: false, prodPort: 3000 },
-    pwa: { workboxMode: 'GenerateSW' },
-    capacitor: { hideSplashscreen: true },
-    electron: { inspectPort: 5858, bundler: 'packager' },
-    bex: { contentScripts: ['my-content-script'] },
+
+    ssr: {
+      pwa: false,
+      prodPort: 3000,
+    },
+    
+    pwa: {
+      workboxMode: 'GenerateSW',
+    },
+    
+    capacitor: {
+      hideSplashscreen: true,
+    },
+    
+    electron: {
+      inspectPort: 5858,
+      bundler: 'packager',
+    },
+    
+    bex: {
+      contentScripts: [
+        'my-content-script'
+      ]
+    }
   };
 });

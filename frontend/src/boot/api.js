@@ -12,12 +12,40 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+// Helper to remove circular references from API responses
+// Prevents "Maximum call stack size exceeded" in Vue's reactivity system
+const decycle = (obj, seen = new WeakSet()) => {
+  if (obj && typeof obj === 'object') {
+    if (seen.has(obj)) return null // Break the circle
+    seen.add(obj)
+    if (Array.isArray(obj)) {
+      return obj.map(item => decycle(item, seen))
+    }
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        obj[key] = decycle(obj[key], seen)
+      }
+    }
+  }
+  return obj
+}
+
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Sanitize the data before it hits your Vue components/stores
+    if (response.data) {
+      response.data = decycle(response.data)
+    }
+    return response
+  },
   (error) => {
-    if (error.response?.status === 401) {
+    // Check if we are already on an auth page to prevent the loop
+    const isAuthPage = window.location.pathname.includes('/auth/')
+    
+    if (error.response?.status === 401 && !isAuthPage) {
       localStorage.removeItem('token')
-      window.location.href = '/auth/login'
+      // Use replace to prevent back-button loops
+      window.location.replace('/auth/login')
     }
     return Promise.reject(error)
   }

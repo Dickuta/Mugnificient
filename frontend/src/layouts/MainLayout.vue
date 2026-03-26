@@ -96,8 +96,8 @@
       </q-tabs>
     </q-header>
 
-    <!-- Side Drawer -->
-    <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
+    <!-- Side Drawer - Hidden on home page -->
+    <q-drawer v-model="leftDrawerOpen" show-if-above bordered v-if="!isHomePage">
       <q-list>
         <q-item-label header class="text-primary">Shop Categories</q-item-label>
         <q-item clickable to="/" v-close-popup>

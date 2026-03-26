@@ -2,10 +2,8 @@ import { ref } from 'vue'
 import axios from 'axios'
 import ENDPOINTS from '../config/api'
 
-const API_BASE_URL = '/api'
-
 const api = axios.create({
-  baseURL: `${API_BASE_URL}`,
+  baseURL: ENDPOINTS._base,
   headers: { 'Content-Type': 'application/json' }
 })
 
@@ -515,5 +513,5 @@ export default {
   useForecasting,
   useInventoryML,
   useInventory,
-  api
+  useDelivery
 }
