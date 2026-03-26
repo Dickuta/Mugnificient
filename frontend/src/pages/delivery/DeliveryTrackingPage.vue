@@ -1,0 +1,535 @@
+<template>
+  <q-page class="q-pa-md">
+    <div class="row items-center q-mb-md">
+      <div class="text-h4">Delivery & Shipping Management</div>
+      <q-space />
+      <q-btn flat round icon="refresh" @click="loadData" :loading="loading">
+        <q-tooltip>Refresh</q-tooltip>
+      </q-btn>
+    </div>
+
+    <div v-if="!isStaff && !isCustomer" class="text-center q-pa-xl">
+      <q-icon name="local_shipping" size="100px" color="grey-4" />
+      <div class="text-h6 q-mt-md text-grey">Access required</div>
+    </div>
+
+    <div v-else>
+      <q-tabs v-model="tab" class="q-mb-md" align="left" active-color="primary" indicator-color="primary">
+        <q-tab name="shipments" label="Shipments" />
+        <q-tab name="tracking" label="Track Package" />
+        <q-tab v-if="isStaff" name="create" label="Create Shipment" />
+        <q-tab v-if="isStaff" name="providers" label="Providers" />
+      </q-tabs>
+
+      <q-tab-panels v-model="tab" animated>
+        <!-- SHIPMENTS TAB -->
+        <q-tab-panel name="shipments">
+          <q-table
+            :rows="orders"
+            :columns="orderColumns"
+            row-key="id"
+            :filter="shipmentFilter"
+            flat
+          >
+            <template v-slot:top-right>
+              <q-input v-model="shipmentFilter" dense debounce="300" placeholder="Search shipments">
+                <template v-slot:append>
+                  <q-icon name="search" />
+                </template>
+              </q-input>
+            </template>
+            <template v-slot:body-cell-status="props">
+              <q-td :props="props">
+                <q-chip :color="getStatusColor(props.row.status)" text-color="white">
+                  {{ props.row.status }}
+                </q-chip>
+              </q-td>
+            </template>
+            <template v-slot:body-cell-tracking_number="props">
+              <q-td :props="props">
+                <span v-if="props.row.tracking_number">
+                  {{ props.row.tracking_number }}
+                  <q-btn 
+                    flat 
+                    dense 
+                    size="xs" 
+                    icon="visibility" 
+                    @click="openTracking(props.row.tracking_number)" 
+                  />
+                </span>
+                <span v-else>N/A</span>
+              </q-td>
+            </template>
+            <template v-slot:body-cell-actions="props">
+              <q-td :props="props">
+                <q-btn-group flat>
+                  <q-btn flat dense color="primary" icon="visibility" @click="viewShipmentDetails(props.row)" />
+                  <q-btn 
+                    v-if="isStaff && props.row.status === 'shipped'" 
+                    flat 
+                    dense 
+                    color="warning" 
+                    icon="cancel" 
+                    @click="cancelShipment(props.row)"
+                  />
+                </q-btn-group>
+              </q-td>
+            </template>
+          </q-table>
+        </q-tab-panel>
+
+        <!-- TRACKING TAB -->
+        <q-tab-panel name="tracking">
+          <q-card class="q-pa-md">
+            <div class="row q-col-gutter-md">
+              <div class="col-12 col-md-8">
+                <q-input
+                  v-model="trackingNumber"
+                  label="Tracking Number"
+                  outlined
+                  dense
+                  class="q-mb-md"
+                />
+                <q-btn color="primary" label="Track Shipment" @click="trackShipment" :loading="loading" />
+              </div>
+              <div class="col-12 col-md-4">
+                <q-card bordered>
+                  <q-card-section>
+                    <div class="text-subtitle2">Track Instructions</div>
+                    <div class="text-caption">
+                      Enter tracking number to get real-time delivery status.
+                      Most carriers provide tracking updates every 15-30 minutes.
+                    </div>
+                  </q-card-section>
+                </q-card>
+              </div>
+            </div>
+          </q-card>
+
+          <div v-if="trackingResult" class="q-mt-md">
+            <q-card>
+              <q-card-section>
+                <div class="text-h6">Tracking Information</div>
+                <div class="row q-col-gutter-md q-mt-md">
+                  <div class="col-12 col-md-6">
+                    <q-list>
+                      <q-item>
+                        <q-item-section avatar>
+                          <q-icon name="local_shipping" color="primary" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>Tracking Number</q-item-label>
+                          <q-item-label caption>{{ trackingResult.tracking_number }}</q-item-label>
+                        </q-item-section>
+                      </q-item>
+                      <q-item>
+                        <q-item-section avatar>
+                          <q-icon name="schedule" color="info" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>Status</q-item-label>
+                          <q-item-label caption>
+                            <q-chip :color="getStatusColor(trackingResult.status)" text-color="white">
+                              {{ trackingResult.status }}
+                            </q-chip>
+                          </q-item-label>
+                        </q-item-section>
+                      </q-item>
+                      <q-item v-if="trackingResult.estimated_delivery">
+                        <q-item-section avatar>
+                          <q-icon name="calendar_today" color="info" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>Estimated Delivery</q-item-label>
+                          <q-item-label caption>{{ formatDate(trackingResult.estimated_delivery) }}</q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <div class="text-subtitle2">Current Location</div>
+                    <div v-if="trackingResult.location">{{ trackingResult.location }}</div>
+                    <div v-else>Location unknown</div>
+                    
+                    <div class="text-subtitle2 q-mt-md">Provider</div>
+                    <div>{{ trackingResult.provider || 'N/A' }}</div>
+                  </div>
+                </div>
+                
+                <div class="q-mt-md">
+                  <div class="text-subtitle2">Event History</div>
+                  <q-timeline color="secondary">
+                    <q-timeline-entry
+                      v-for="(event, index) in trackingResult.events || []"
+                      :key="index"
+                      :title="event.status"
+                      :subtitle="formatDate(event.date)"
+                    >
+                      <p>{{ event.description }}</p>
+                      <p v-if="event.location">Location: {{ event.location }}</p>
+                    </q-timeline-entry>
+                  </q-timeline>
+                </div>
+              </q-card-section>
+            </q-card>
+          </div>
+        </q-tab-panel>
+
+        <!-- CREATE SHIPMENT TAB (STAFF ONLY) -->
+        <q-tab-panel v-if="isStaff" name="create">
+          <q-card class="q-pa-md">
+            <div class="text-h6 q-mb-md">Create New Shipment</div>
+            
+            <q-form @submit="createShipment">
+              <div class="row q-col-gutter-md">
+                <div class="col-12 col-md-6">
+                  <q-select
+                    v-model="newShipment.orderId"
+                    :options="orderOptions"
+                    option-label="display"
+                    option-value="id"
+                    label="Select Order"
+                    outlined
+                    dense
+                    emit-value
+                    map-options
+                    class="q-mb-md"
+                  />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-select
+                    v-model="newShipment.provider"
+                    :options="deliveryProviders"
+                    option-label="name"
+                    option-value="id"
+                    label="Delivery Provider"
+                    outlined
+                    dense
+                    class="q-mb-md"
+                  />
+                </div>
+                <div class="col-12">
+                  <q-btn 
+                    type="submit" 
+                    color="primary" 
+                    label="Create Shipment" 
+                    :loading="saving" 
+                    :disable="!newShipment.orderId"
+                  />
+                </div>
+              </div>
+            </q-form>
+          </q-card>
+        </q-tab-panel>
+
+        <!-- PROVIDERS TAB (STAFF ONLY) -->
+        <q-tab-panel v-if="isStaff" name="providers">
+          <q-table
+            :rows="providers"
+            :columns="providerColumns"
+            row-key="id"
+            flat
+          >
+            <template v-slot:body-cell-default="props">
+              <q-td :props="props">
+                <q-icon 
+                  v-if="props.row.default" 
+                  name="check_circle" 
+                  color="positive" 
+                  size="sm" 
+                />
+              </q-td>
+            </template>
+          </q-table>
+        </q-tab-panel>
+      </q-tab-panels>
+    </div>
+
+    <!-- Shipment Details Dialog -->
+    <q-dialog v-model="detailsDialog.show">
+      <q-card style="min-width: 600px">
+        <q-card-section class="row items-center">
+          <div class="text-h6">Shipment Details</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section v-if="detailsDialog.order">
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-6">
+              <q-list>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label>Order #</q-item-label>
+                    <q-item-label caption>{{ detailsDialog.order.order_number }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label>Status</q-item-label>
+                    <q-item-label caption>
+                      <q-chip :color="getStatusColor(detailsDialog.order.status)" text-color="white">
+                        {{ detailsDialog.order.status }}
+                      </q-chip>
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label>Tracking Number</q-item-label>
+                    <q-item-label caption>{{ detailsDialog.order.tracking_number || 'N/A' }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item v-if="detailsDialog.order.delivery_provider">
+                  <q-item-section>
+                    <q-item-label>Provider</q-item-label>
+                    <q-item-label caption>{{ detailsDialog.order.delivery_provider }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </div>
+            <div class="col-12 col-md-6">
+              <q-list>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label>Total Amount</q-item-label>
+                    <q-item-label caption>${{ detailsDialog.order.total?.toFixed(2) }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label>Shipping To</q-item-label>
+                    <q-item-label caption>{{ detailsDialog.order.shipping_name }}</q-item-label>
+                    <q-item-label caption>{{ detailsDialog.order.shipping_address_line1 }}</q-item-label>
+                    <q-item-label caption>{{ detailsDialog.order.shipping_city }}, {{ detailsDialog.order.shipping_state }} {{ detailsDialog.order.shipping_zip_code }}</q-item-label>
+                    <q-item-label caption>{{ detailsDialog.order.shipping_country }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </div>
+          </div>
+          
+          <div class="q-mt-md">
+            <div class="text-subtitle2">Order Items</div>
+            <q-list separator>
+              <q-item v-for="item in detailsDialog.order.items" :key="item.id">
+                <q-item-section>
+                  <q-item-label>{{ item.product_name }}</q-item-label>
+                  <q-item-label caption>{{ item.quantity }} x ${{ item.product_price?.toFixed(2) }}</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <div class="text-subtitle1">${{ (item.quantity * item.product_price)?.toFixed(2) }}</div>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Close" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+  </q-page>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useQuasar } from 'quasar'
+import { ordersAPI } from 'src/boot/api'
+import { useDelivery } from 'src/composables/useApi'
+import { useAuthStore } from 'src/stores/auth'
+
+const { createDelivery, trackShipment, cancelShipment, getProviders } = useDelivery()
+
+const $q = useQuasar()
+const authStore = useAuthStore()
+
+// Data
+const tab = ref('shipments')
+const loading = ref(false)
+const saving = ref(false)
+
+const orders = ref([])
+const providers = ref([])
+const deliveryProviders = ref([])
+
+// Filters
+const shipmentFilter = ref('')
+
+// Tracking
+const trackingNumber = ref('')
+const trackingResult = ref(null)
+
+// Create Shipment
+const newShipment = ref({
+  orderId: null,
+  provider: 'inhouse'
+})
+
+// Details Dialog
+const detailsDialog = ref({
+  show: false,
+  order: null
+})
+
+// Columns
+const orderColumns = [
+  { name: 'id', label: 'ID', field: 'id', sortable: true },
+  { name: 'order_number', label: 'Order #', field: 'order_number', sortable: true },
+  { name: 'status', label: 'Status', field: 'status' },
+  { name: 'total', label: 'Total', field: 'total', format: val => `$${val?.toFixed(2)}` },
+  { name: 'tracking_number', label: 'Tracking', field: 'tracking_number' },
+  { name: 'shipping_name', label: 'Recipient', field: 'shipping_name' },
+  { name: 'created_at', label: 'Date', field: 'created_at', format: val => formatDate(val) },
+  { name: 'actions', label: 'Actions', field: 'actions' }
+]
+
+const providerColumns = [
+  { name: 'id', label: 'ID', field: 'id', sortable: true },
+  { name: 'name', label: 'Name', field: 'name', sortable: true },
+  { name: 'description', label: 'Description', field: 'description' },
+  { name: 'default', label: 'Default', field: 'default' }
+]
+
+// Computed
+const isStaff = computed(() => authStore.user?.is_staff || false)
+const isCustomer = computed(() => authStore.isAuthenticated && !authStore.user?.is_staff)
+
+const orderOptions = computed(() => {
+  return orders.value.map(order => ({
+    id: order.id,
+    display: `${order.order_number} - ${order.shipping_name} ($${order.total?.toFixed(2)})`
+  }))
+})
+
+// Methods
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'pending': return 'warning'
+    case 'shipped': return 'info'
+    case 'delivered': return 'positive'
+    case 'cancelled': return 'negative'
+    case 'in_transit': return 'secondary'
+    case 'out_for_delivery': return 'accent'
+    default: return 'grey'
+  }
+}
+
+const formatDate = (dateStr) => {
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  })
+}
+
+async function loadData() {
+  loading.value = true
+  try {
+    // Load orders that are ready for shipping
+    const ordersResult = await ordersAPI.getAll(authStore.user.id)
+    orders.value = ordersResult.data.filter(order => 
+      order.status === 'pending' || 
+      order.status === 'shipped' || 
+      order.tracking_number
+    )
+    
+    // Load providers
+    const providersResult = await deliveryAPI.getProviders()
+    providers.value = providersResult.data.providers
+    deliveryProviders.value = providersResult.data.providers
+  } catch (err) {
+    console.error('Error loading data:', err)
+    $q.notify({ type: 'negative', message: 'Failed to load delivery data' })
+  } finally {
+    loading.value = false
+  }
+}
+
+async function trackShipment() {
+  if (!trackingNumber.value.trim()) {
+    $q.notify({ type: 'warning', message: 'Please enter a tracking number' })
+    return
+  }
+  
+  loading.value = true
+  try {
+    const result = await deliveryAPI.trackShipment(trackingNumber.value)
+    trackingResult.value = result.data
+    $q.notify({ type: 'positive', message: 'Tracking information retrieved' })
+  } catch (err) {
+    $q.notify({ type: 'negative', message: 'Failed to track shipment' })
+  } finally {
+    loading.value = false
+  }
+}
+
+async function createShipment() {
+  if (!newShipment.value.orderId) {
+    $q.notify({ type: 'warning', message: 'Please select an order' })
+    return
+  }
+  
+  saving.value = true
+  try {
+    const result = await deliveryAPI.createDelivery({
+      order_id: newShipment.value.orderId,
+      provider: newShipment.value.provider
+    })
+    
+    $q.notify({ type: 'positive', message: 'Shipment created successfully!' })
+    await loadData()
+    
+    // Reset form
+    newShipment.value = {
+      orderId: null,
+      provider: 'inhouse'
+    }
+  } catch (err) {
+    $q.notify({ type: 'negative', message: 'Failed to create shipment' })
+  } finally {
+    saving.value = false
+  }
+}
+
+async function cancelShipment(order) {
+  $q.dialog({
+    title: 'Cancel Shipment',
+    message: `Are you sure you want to cancel shipment for order ${order.order_number}?`,
+    cancel: true,
+    persistent: true
+  }).onOk(async () => {
+    if (!order.tracking_number) {
+      $q.notify({ type: 'warning', message: 'No tracking number available' })
+      return
+    }
+    
+    try {
+      await deliveryAPI.cancelShipment(order.tracking_number)
+      $q.notify({ type: 'positive', message: 'Shipment cancelled successfully' })
+      await loadData()
+    } catch (err) {
+      $q.notify({ type: 'negative', message: 'Failed to cancel shipment' })
+    }
+  })
+}
+
+function viewShipmentDetails(order) {
+  detailsDialog.value.order = order
+  detailsDialog.value.show = true
+}
+
+function openTracking(trackingNum) {
+  if (!trackingNum) return
+  
+  trackingNumber.value = trackingNum
+  tab.value = 'tracking'
+  trackShipment()
+}
+
+// Load data on mount
+onMounted(() => {
+  if (authStore.isAuthenticated) {
+    loadData()
+  }
+})
+</script>

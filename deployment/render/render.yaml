@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: mugstore-db
+    plan: free
+    postgresMajorVersion: "15"
+
+  - type: web
+    name: mugstore
+    dockerfilePath: Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: USE_SQLITE
+        value: "false"
+      - key: POSTGRES_HOST
+        fromDatabase:
+          name: mugstore-db
+          property: host
+      - key: POSTGRES_PORT
+        fromDatabase:
+          name: mugstore-db
+          property: port
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: mugstore-db
+          property: database
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: mugstore-db
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: mugstore-db
+          property: password
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: "https://mugstore.onrender.com"

@@ -1,0 +1,56 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+
+# Virtual environments
+venv
+env
+.venv
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Database
+*.db
+*.sqlite
+
+# Logs
+*.log
+
+# Node
+node_modules
+
+# Quasar
+.quasar
+dist
+
+# Environment (keep .env.production in deployment)
+.env
+.env.local
+.env.*.local
+
+# Test coverage
+.coverage
+htmlcov
+.pytest_cache
+
+# Misc
+*.md
+!README.md
+.DS_Store
+Thumbs.db
