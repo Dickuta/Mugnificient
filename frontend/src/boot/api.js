@@ -12,29 +12,44 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Helper to remove circular references from API responses
-// Prevents "Maximum call stack size exceeded" in Vue's reactivity system
-const decycle = (obj, seen = new WeakSet()) => {
-  if (obj && typeof obj === 'object') {
-    if (seen.has(obj)) return null // Break the circle
-    seen.add(obj)
-    if (Array.isArray(obj)) {
-      return obj.map(item => decycle(item, seen))
-    }
-    for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        obj[key] = decycle(obj[key], seen)
+// Helper to break circular references by cloning the object
+// This prevents Vue reactivity from hitting infinite loops
+const breakCircularRefs = (obj, seen = new WeakSet()) => {
+  if (!obj || typeof obj !== 'object') return obj
+  if (seen.has(obj)) return undefined // Break the circle
+  seen.add(obj)
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => breakCircularRefs(item, seen))
+  }
+  
+  const result = {}
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const value = breakCircularRefs(obj[key], seen)
+      if (value !== undefined) {
+        result[key] = value
       }
     }
   }
-  return obj
+  
+  return result
 }
 
 api.interceptors.response.use(
   (response) => {
-    // Sanitize the data before it hits your Vue components/stores
-    if (response.data) {
-      response.data = decycle(response.data)
+    // Only process object responses, skip auth responses to avoid recursion
+    if (response.data && typeof response.data === 'object') {
+      const isAuthResponse = response.config.url?.includes('/auth/')
+      if (!isAuthResponse) {
+        try {
+          // Break circular references by creating a clean clone
+          response.data = breakCircularRefs(response.data)
+        } catch (e) {
+          // If cloning fails, return original data
+          console.warn('Failed to process response:', e.message)
+        }
+      }
     }
     return response
   },

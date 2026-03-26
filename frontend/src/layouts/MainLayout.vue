@@ -43,7 +43,7 @@
         
         <!-- Cart with Badge -->
         <q-btn flat round icon="shopping_cart" to="/cart" class="q-mx-sm">
-          <q-badge color="red" floating>{{ cartStore.totalItems }}</q-badge>
+          <q-badge color="red" floating :label="cartCount" />
           <q-tooltip>Cart</q-tooltip>
         </q-btn>
         
@@ -140,6 +140,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from 'src/stores/auth'
 import { useCartStore } from 'src/stores/cart'
+import { computed, watch } from 'vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -149,6 +150,19 @@ const appName = import.meta.env.VITE_APP_NAME || 'Mugnificent'
 const leftDrawerOpen = ref(false)
 const currentTab = ref('home')
 const searchQuery = ref('')
+
+// Reactive cart count
+const cartCount = computed(() => {
+  const count = cartStore.cart?.total_items || cartStore.totalItems || 0
+  return count > 0 ? count : ''
+})
+
+// Watch for cart changes and show notification
+watch(() => cartStore.cart, (newCart, oldCart) => {
+  if (newCart && oldCart && newCart.total_items !== oldCart.total_items) {
+    // Cart updated - badge will update automatically via computed property
+  }
+}, { deep: true })
 
 function toggleLeftDrawer() {
   leftDrawerOpen.value = !leftDrawerOpen.value

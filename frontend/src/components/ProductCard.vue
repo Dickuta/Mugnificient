@@ -56,9 +56,24 @@ const router = useRouter()
 
 const imageUrl = computed(() => {
   const img = props.product.image
-  if (!img) return 'https://via.placeholder.com/400'
-  if (img.startsWith('http')) return img
-  return `http://localhost:8000${img}`
+  if (!img) return 'https://via.placeholder.com/400?text=No+Image'
+  
+  // Check if it's a full URL
+  if (img.startsWith('http://') || img.startsWith('https://')) {
+    return img
+  }
+  
+  // Use environment-based storage configuration
+  const storageType = import.meta.env.VITE_IMAGE_STORAGE_TYPE || 'local'
+  const storageUrl = import.meta.env.VITE_IMAGE_STORAGE_URL || ''
+  
+  if (storageType === 'minio') {
+    // Use MinIO storage
+    return `${storageUrl}${img}`
+  } else {
+    // Use local storage (images served from backend)
+    return `http://localhost:8000${img}`
+  }
 })
 
 const categoryName = computed(() => {
